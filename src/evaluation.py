@@ -12,7 +12,7 @@ tfk = tf.keras
 tfkl = tfk.layers
 
 from .base import Metric
-from src.eval_metrics import Performance
+from eval_metrics import EvaluationMetrics
 
 
 class Evaluator:
@@ -58,11 +58,11 @@ class Evaluator:
         y_pred_single = np.argmax(y_hat, axis=1)
         y_pred = np.array([list(np.eye(2)[i]) for i in y_pred_single], dtype=np.uint8)
 
-        performance = Performance()
+        performance = EvaluationMetrics()
         class_names = ['Non-Hemorrhage', 'Hemorrhage']
-        evaluated = performance.print_performance_metrics(y_true_single, y_pred_single, class_names)
+        evaluated = performance.evaluate_classification_report(y_true_single, y_pred_single, class_names)
 
-        metrics_dict = {'performace': evaluated}
+        metrics_dict = {'Classification Report': evaluated}
         self._log_metrics_to_mlflow(active_run, metrics_dict)
 
         # # Using self.get_metrics()

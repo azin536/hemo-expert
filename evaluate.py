@@ -1,5 +1,5 @@
 from pathlib import Path
-import inspect
+from pydoc import locate
 
 import click
 import tensorflow.keras as tfk
@@ -13,7 +13,7 @@ from src.utils import setup_mlflow_active_run, check_conditions
 import src.eval_metrics
 from src.base import Metric
 from pydoc import locate
-from src.eval_metrics import Performance
+from src.eval_metrics import EvaluationMetrics
 
 
 DATA_DIR = Path('data')
@@ -47,7 +47,7 @@ def main(conf: str, debug: bool):
                                          session_type='eval',
                                          experiment_name=experiment_name, colab = True)
 
-    eval_metrics = [Performance]
+    eval_metrics = [EvaluationMetrics]
     # for name, cls in inspect.getmembers(src.eval_metrics, lambda o: inspect.isclass(o) and issubclass(o, Metric)):
     #     if name != 'Metric':
     #         eval_metrics.append(cls())
