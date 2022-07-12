@@ -1,0 +1,12 @@
+md5: c503d197a79624f31b8a3b6e54724a63
+frozen: true
+deps:
+- path: datasources/RSNA
+  repo:
+    url: https://github.com/iamsoroush/dvc-minio-data-registry.git
+    rev_lock: 5c50b39d8cf79b1672d24ac6fb25f4d79ec0a679
+outs:
+- md5: 905a7208299599ef961c055b116d9f71.dir
+  size: 1726598154
+  nfiles: 3289
+  path: RSNA

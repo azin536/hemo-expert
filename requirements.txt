@@ -1,0 +1,10 @@
+dvc[s3]
+# tensorflow==2.9.1
+pydicom==2.2.2
+SimpleITK==2.1.1.2
+pydantic
+hydra-core
+mlflow
+opencv-python
+metaflow
+discord.py

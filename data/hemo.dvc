@@ -1,0 +1,12 @@
+md5: cd34fcd3ba38ced6ffe36765e57924ed
+frozen: true
+deps:
+- path: tasks/hemo
+  repo:
+    url: https://github.com/iamsoroush/dvc-minio-data-registry.git
+    rev_lock: 5c50b39d8cf79b1672d24ac6fb25f4d79ec0a679
+outs:
+- md5: e03c5d9f24b2930d7e05b6604dfffec7.dir
+  size: 1906659
+  nfiles: 2
+  path: hemo

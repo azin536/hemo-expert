@@ -1,0 +1,50 @@
+seed: 7
+
+dataset_name: RSNA_ICH_Dataset  # i.e. data/{dataset_name}/ contains train, eval and labels.csv
+#model_name: my-hemo-model  # will be used when logging the model to the mlflow
+class_names : ['Non-Hemorrhage', 'Hemorrhage']
+
+dataset: src.data_pipeline.DataLoader
+model: src.model_building.DenseNet
+#model: model_building.MobileNet
+
+data_pipeline:
+  train_csv: '/content/samlple-exp-repository/data/meta_train.csv'
+  validation_csv: '/content/samlple-exp-repository/data/meta_val.csv'
+  class_name: data_pipeline.Dataset
+  val_split: 0.2
+  shuffle: true
+  batch_size: 16
+  label_map: {'non-hemo': 0, 'hemo': 1}
+  train_batch_size : 32
+  val_batch_size : 32
+  image_dimension : 256
+
+preprocessing:
+  brain_window: [0, 80]
+  subdural_window: [-20, 180]
+  soft_window: [-150, 230]
+  target_size: 256
+  min_dcm_files_for_series: 15
+
+trainer:
+  export_metric: 'loss'
+  export_mode: 'min'
+  epochs: 2
+
+exporter:
+#  pyfunc_model: inference.MyHemoModel
+
+
+model_builder:
+  input_shape: [256, 256, 3]
+  activation: 'relu'
+  weights: null  # or 'imagenet'
+  threshold: 0.5
+
+evaluation:
+
+
+artifacts:
+  run_url: null
+  model_url: null
