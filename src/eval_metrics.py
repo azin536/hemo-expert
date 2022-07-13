@@ -20,6 +20,11 @@ def print_confusion_matrix(y_test, y_pred, class_names):
 class EvaluationMetrics:
 
     @staticmethod
+    def confusion_matrix(y_test, y_pred):
+        tn, fp, fn, tp = confusion_matrix(y_test, y_pred).ravel()
+        return tn, fp, fn, tp
+
+    @staticmethod
     def evaluate_accuracy(y_test, y_pred):
         return np.round(metrics.accuracy_score(y_test, y_pred), 4)
 
@@ -39,8 +44,19 @@ class EvaluationMetrics:
     def evaluate_roc_auc_score(y_test, y_pred):
         return metrics.roc_auc_score(y_test, y_pred)
 
-    @staticmethod
-    def evaluate_classification_report(y_test, y_pred, target_names):
-        print(target_names)
-        return metrics.classification_report(y_test, y_pred, target_names=target_names)
+    def evaluate_sensitivity(self, y_test, y_pred):
+        tn, fp, fn, tp = confusion_matrix(y_test, y_pred).ravel()
+        sensitivity = np.round(tp / (tp + fn), 4)
+        return sensitivity
+
+    def evaluate_specifity(self, y_test, y_pred):
+        tn, fp, fn, tp = confusion_matrix(y_test, y_pred).ravel()
+        specifity = np.round(tn / (tn + fp), 4)
+        return specifity
+
+    def evaluate_npv(self, y_test, y_pred):
+        tn, fp, fn, tp = confusion_matrix(y_test, y_pred).ravel()
+        npv = np.round(tn / (tn + fn), 4)
+        return npv
+
 

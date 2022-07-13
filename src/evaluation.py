@@ -8,11 +8,12 @@ import numpy as np
 import mlflow
 import pandas as pd
 import tensorflow as tf
+
 tfk = tf.keras
 tfkl = tfk.layers
 
 from .base import Metric
-from eval_metrics import EvaluationMetrics
+from src.eval_metrics import EvaluationMetrics
 
 
 class Evaluator:
@@ -52,17 +53,31 @@ class Evaluator:
         #                               verbose=False).items():
         #     eval_internal_metrics[f'model.evaluate_{k}'] = v
 
-        y_hat = tf_model.predict(data_loader, steps = n_iter)
-        y_true = data_loader.get_y_true()
-        y_true_single = np.argmax(y_true, axis=1)
-        y_pred_single = np.argmax(y_hat, axis=1)
-        y_pred = np.array([list(np.eye(2)[i]) for i in y_pred_single], dtype=np.uint8)
-
         performance = EvaluationMetrics()
-        class_names = ['Non-Hemorrhage', 'Hemorrhage']
-        evaluated = performance.evaluate_classification_report(y_true_single, y_pred_single, class_names)
 
-        metrics_dict = {'Classification Report': evaluated}
+        # y_hat = tf_model.predict(data_loader, steps = n_iter)
+        # y_true = data_loader.get_y_true()
+        # y_true_single = np.argmax(y_true, axis=1)
+        # y_pred_single = np.argmax(y_hat, axis=1)
+        # y_pred = np.array([list(np.eye(2)[i]) for i in y_pred_single], dtype=np.uint8)
+
+        y_true_single = [1, 1, 0, 0, 0, 0, 0, 0, 0, 0]
+        y_pred_single = [1, 1, 1, 0, 1, 0, 1, 0, 0, 0]
+
+        evaluated_acc = performance.evaluate_accuracy(y_true_single, y_pred_single)
+        evaluated_precision_score = performance.evaluate_precision_score(y_true_single, y_pred_single)
+        evaluated_recall_score = performance.evaluate_recall_score(y_true_single, y_pred_single)
+        evaluated_f1_score = performance.evaluate_f1_score(y_true_single, y_pred_single)
+        evaluated_roc_auc_score = performance.evaluate_roc_auc_score(y_true_single, y_pred_single)
+        evaluated_sensitivity = performance.evaluate_sensitivity(y_true_single, y_pred_single)
+        evaluated_specifity = performance.evaluate_specifity(y_true_single, y_pred_single)
+        evaluated_npv = performance.evaluate_npv(y_true_single, y_pred_single)
+
+        metrics_dict = {'Acc_Score': evaluated_acc, 'Precision_Score': evaluated_precision_score,
+                        'Recall_Score': evaluated_recall_score, 'F1_score': evaluated_f1_score,
+                        'Roc_Auc': evaluated_roc_auc_score, 'Sensitivity': evaluated_sensitivity,
+                        'Specifity': evaluated_specifity, 'NPV': evaluated_npv}
+        # metrics_dict = {'classification report': one, 'two': two, 'three': three, 'four': four}
         self._log_metrics_to_mlflow(active_run, metrics_dict)
 
         # # Using self.get_metrics()

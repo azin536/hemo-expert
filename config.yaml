@@ -9,8 +9,8 @@ model: src.model_building.DenseNet
 #model: model_building.MobileNet
 
 data_pipeline:
-  train_csv: '/content/samlple-exp-repository/data/meta_train.csv'
-  validation_csv: '/content/samlple-exp-repository/data/meta_val.csv'
+  train_csv: '/content/hemo-expert/data/meta_train.csv'
+  validation_csv: '/content/hemo-expert/data/meta_val.csv'
   class_name: data_pipeline.Dataset
   val_split: 0.2
   shuffle: true
@@ -43,7 +43,8 @@ model_builder:
   threshold: 0.5
 
 evaluation:
-
+  evaluation_csv: '/content/hemo-expert/data/meta_val.csv'
+  eval_batch_size: 20
 
 artifacts:
   run_url: null

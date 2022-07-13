@@ -198,13 +198,19 @@ class StepCalculator:
     def calculate_steps(self, config):
         train_df = pd.read_csv(config.data_pipeline.train_csv)
         validation_df = pd.read_csv(config.data_pipeline.validation_csv)
+        evaluation_df = pd.read_csv(config.evaluation.evaluation_csv)
+
         train_counts, train_pos_counts = self.get_sample_counts(train_df, config.class_names)
-        dev_counts, dev_pos_counts = self.get_sample_counts(validation_df, config.class_names)
+        val_counts, val_pos_counts = self.get_sample_counts(validation_df, config.class_names)
+        eval_counts, eval_pos_counts = self.get_sample_counts(evaluation_df, config.class_names)
+
         train_steps = int(np.ceil(train_counts / config.data_pipeline.train_batch_size))
-        validation_steps = int(np.ceil(dev_counts / config.data_pipeline.val_batch_size))
+        validation_steps = int(np.ceil(val_counts / config.data_pipeline.val_batch_size))
+        evaluation_steps = int(np.ceil(eval_counts / config.evaluation.eval_batch_size))
+
         weights = self.calculating_class_weights(train_df[config.class_names].values.astype(np.float32))
         weights = np.sqrt(weights)
-        return train_steps, validation_steps, weights
+        return train_steps, validation_steps, evaluation_steps, weights
 
 
 class DataLoader:
