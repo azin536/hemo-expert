@@ -28,13 +28,13 @@ def main(conf: str, debug: bool):
     data_dir = DATA_DIR.joinpath(config.dataset_name)
     run_dir = Path('run')
 
-    repo = Repo('samlple-exp-repository')
+    repo = Repo('hemo-expert')
 
     if not debug:
         check_conditions(repo, data_dir=data_dir)
 
     dataset = locate(config.dataset)(config)
-    tr_gen, val_gen, n_tr, n_val = dataset.create_data()
+    eval_gen, n_eval = dataset.create_eval_data()
 
     checkpoints = get_checkpoints_info(run_dir.joinpath('checkpoints'))
     selected_model = min(checkpoints, key=lambda x: x['value'])
@@ -53,7 +53,7 @@ def main(conf: str, debug: bool):
     #         eval_metrics.append(cls())
 
     evaluator = Evaluator(eval_metrics=eval_metrics)
-    evaluator.run(model, tr_gen, n_tr, active_run)
+    evaluator.run(model, eval_gen, n_eval, active_run)
 
 
 if __name__ == '__main__':

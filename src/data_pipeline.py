@@ -210,11 +210,10 @@ class StepCalculator:
 class DataLoader:
     def __init__(self, config):
         self.config = config
+        step_calculator = StepCalculator()
+        self.n_tr, self.n_val, self.n_eval, self.weights = step_calculator.calculate_steps(self.config)
 
     def create_data(self):
-        step_calculator = StepCalculator()
-        n_tr, n_val, weights = step_calculator.calculate_steps(self.config)
-
         tr_gen = AugmentedImageSequence(
             dataset_csv_file=self.config.data_pipeline.train_csv,
             x_names='imgfile',
@@ -224,7 +223,7 @@ class DataLoader:
             target_size=(self.config.data_pipeline.image_dimension, self.config.data_pipeline.image_dimension),
             augmenter=False,
             shuffle_on_epoch_end=True,
-            steps=n_tr,
+            steps=self.n_tr,
         )
 
         val_gen = AugmentedImageSequence(
@@ -234,9 +233,23 @@ class DataLoader:
             source_image_dir='',
             batch_size=self.config.data_pipeline.val_batch_size,
             target_size=(self.config.data_pipeline.image_dimension, self.config.data_pipeline.image_dimension),
-            steps=n_val,
+            steps=self.n_val,
             shuffle_on_epoch_end=True,
             augmenter=False,
         )
-        return tr_gen, val_gen, n_tr, n_val
+        return tr_gen, val_gen, self.n_tr, self.n_val
+
+    def create_eval_data(self):
+        eval_gen = AugmentedImageSequence(
+            dataset_csv_file=self.config.evaluation.evaluation_csv,
+            x_names='imgfile',
+            class_names=self.config.class_names,
+            source_image_dir='',
+            batch_size=self.config.evaluation.eval_batch_size,
+            target_size=(self.config.data_pipeline.image_dimension, self.config.data_pipeline.image_dimension),
+            steps=self.n_eval,
+            shuffle_on_epoch_end=False,
+            augmenter=False,
+        )
+        return eval_gen, self.n_eval
 

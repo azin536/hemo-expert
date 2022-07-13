@@ -41,5 +41,6 @@ class EvaluationMetrics:
 
     @staticmethod
     def evaluate_classification_report(y_test, y_pred, target_names):
+        print(target_names)
         return metrics.classification_report(y_test, y_pred, target_names=target_names)
 
