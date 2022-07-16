@@ -1,29 +1,15 @@
-import typing
-from pathlib import Path
-
-from omegaconf.dictconfig import DictConfig
-import tensorflow as tf
-import pandas as pd
-import numpy as np
-import SimpleITK as sitk
 import cv2
-import numpy as np
-import os
 from tensorflow.keras.utils import Sequence
-from PIL import Image, ImageOps
-from skimage.transform import resize
 from imgaug import augmenters as iaa
 from os.path import isfile, join
 from os import listdir
-
 import numpy as np
 import os
 import pandas as pd
 from sklearn.utils.class_weight import compute_class_weight
 import tensorflow.python.keras.backend as K
-from tensorflow.python.keras.metrics import AUC, Recall, Precision, BinaryCrossentropy
-from tensorflow.python.keras.callbacks import Callback, ModelCheckpoint, ReduceLROnPlateau, CSVLogger
-import datetime
+from tensorflow.python.keras.metrics import AUC
+
 
 
 def window_img(img, img_min, img_max):
@@ -58,7 +44,6 @@ def adj_slice(input_file):
         five = int(re) + 1
         six = int(re) + 2
 
-        # consecutive_slices = [(a + 'slice_' + str(two) + '.jpg'), (a + 'slice_' + str(three) + '.jpg'), (a  + onlyfiles[center_index]), (a + 'slice_' + str(five) + '.jpg'), (a + 'slice_' + str(six) + '.jpg')]
         consecutive_slices = [(a + 'slice_' + str(three) + '.jpg'), (a + onlyfiles[center_index]),
                               (a + 'slice_' + str(five) + '.jpg')]
     return consecutive_slices
@@ -148,6 +133,19 @@ class AugmentedImageSequence(Sequence):
             You're trying run get_y_true() when generator option 'shuffle_on_epoch_end' is True.
             """)
         return self.y[:self.steps * self.batch_size, :]
+
+    def get_x_true(self):
+        """
+        Use this function to get x_true for predict_generator
+        In order to get correct y, you have to set shuffle_on_epoch_end=False.
+
+        """
+        if self.shuffle:
+            raise ValueError("""
+            You're trying run get_y_true() when generator option 'shuffle_on_epoch_end' is True.
+            """)
+        return self.x_path[:self.steps*self.batch_size]
+
 
     def prepare_dataset(self):
         df = self.dataset_df.sample(frac=1., random_state=self.random_state)

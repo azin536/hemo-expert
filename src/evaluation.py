@@ -26,43 +26,27 @@ class Evaluator:
             data_loader: tf.data.Dataset,
             n_iter: int,
             active_run: mlflow.ActiveRun):
-        # def _wrap_pred_step(model):
-        #     """Overrides the ``predict`` method of the ``tfk.Model`` model.
-
-        #     By calling ``predict`` method of the model, three lists will be returned:
-        #      ``(predictions, ground truths, data_ids/sample_weights)``
-        #     """
-
-        #     def new_predict_step(data):
-        #         x, y, z = tfk.utils.unpack_x_y_sample_weight(data)
-        #         return model(x, training=False), y, z
-
-        #     setattr(model, 'predict_step', new_predict_step)
-
-        # def wrapper_gen(gen):
-        #     while True:
-        #         x_b, y_b, w_b = next(gen)
-        #         yield x_b, y_b
-
-        # # Using model.evaluate()
-        # data_gen = iter(wrapper_gen(iter(data_loader)))
-        # eval_internal_metrics = dict()
-        # for k, v in tf_model.evaluate(data_gen,
-        #                               steps=n_iter,
-        #                               return_dict=True,
-        #                               verbose=False).items():
-        #     eval_internal_metrics[f'model.evaluate_{k}'] = v
 
         performance = EvaluationMetrics()
 
-        # y_hat = tf_model.predict(data_loader, steps = n_iter)
-        # y_true = data_loader.get_y_true()
-        # y_true_single = np.argmax(y_true, axis=1)
-        # y_pred_single = np.argmax(y_hat, axis=1)
-        # y_pred = np.array([list(np.eye(2)[i]) for i in y_pred_single], dtype=np.uint8)
+        y_hat = tf_model.predict(data_loader, steps = n_iter)
+        y_true = data_loader.get_y_true()
+        x_true = data_loader.get_x_true()
+        y_true_single = np.argmax(y_true, axis=1)
+        y_pred_single = np.argmax(y_hat, axis=1)
+        y_pred = np.array([list(np.eye(2)[i]) for i in y_pred_single], dtype=np.uint8)
 
-        y_true_single = [1, 1, 0, 0, 0, 0, 0, 0, 0, 0]
-        y_pred_single = [1, 1, 1, 0, 1, 0, 1, 0, 0, 0]
+        # # x_true = ['index1','index2','index3','index4','index5','index6','index7','index8','index9','index10']
+        # y_true_single = [1, 1, 0, 0, 0, 0, 0, 0, 0, 0]
+        # y_pred_single = [1, 1, 1, 0, 1, 0, 1, 0, 0, 0]
+
+        list_of_tuples = list(zip(x_true, y_true_single, y_pred_single))
+        df = pd.DataFrame(list_of_tuples,columns=['ID', 'GT', 'Pred'])
+        df["Status"] = ""
+
+        condlist = [(df['GT'] == 1) & (df['Pred'] == df['GT']), (df['GT'] == 0) & (df['Pred'] == df['GT']), (df['GT'] == 1) & (df['Pred'] != df['GT']), (df['GT'] == 0) & (df['Pred'] != df['GT'])]
+        choicelist = ['True Positive', 'True Negative', 'False Negative', 'Fasle positive']
+        df['Status'] = np.select(condlist, choicelist)
 
         evaluated_acc = performance.evaluate_accuracy(y_true_single, y_pred_single)
         evaluated_precision_score = performance.evaluate_precision_score(y_true_single, y_pred_single)
@@ -77,8 +61,9 @@ class Evaluator:
                         'Recall_Score': evaluated_recall_score, 'F1_score': evaluated_f1_score,
                         'Roc_Auc': evaluated_roc_auc_score, 'Sensitivity': evaluated_sensitivity,
                         'Specifity': evaluated_specifity, 'NPV': evaluated_npv}
-        # metrics_dict = {'classification report': one, 'two': two, 'three': three, 'four': four}
+
         self._log_metrics_to_mlflow(active_run, metrics_dict)
+        self._log_df_report_to_mlflow(active_run, df)
 
         # # Using self.get_metrics()
         # metrics = [metric for metric in self.eval_metrics_]
@@ -149,11 +134,3 @@ class Evaluator:
             with tempfile.NamedTemporaryFile(prefix='eval-report-summary-', suffix='.csv') as f:
                 summary_report.to_csv(f.name)
                 mlflow.log_artifact(f.name)
-            #
-            # test_metrics = {}
-            # for c in summary_report.columns:
-            #     metric_name = f'{prefix}_{c}'
-            #     metric_value = summary_report[c]['mean']
-            #     test_metrics[metric_name] = metric_value
-            #
-            # mlflow.log_metrics(test_metrics)
