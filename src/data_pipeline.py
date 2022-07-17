@@ -1,15 +1,14 @@
-import cv2
 from tensorflow.keras.utils import Sequence
 from imgaug import augmenters as iaa
-from os.path import isfile, join
-from os import listdir
-import numpy as np
-import os
 import pandas as pd
-from sklearn.utils.class_weight import compute_class_weight
-import tensorflow.python.keras.backend as K
-from tensorflow.python.keras.metrics import AUC
 
+import os
+import SimpleITK as sitk
+import numpy
+import numpy as np
+from scipy import ndimage
+from skimage import morphology
+import cv2
 
 
 def window_img(img, img_min, img_max):
@@ -26,41 +25,79 @@ augmentation = iaa.Sequential([iaa.Fliplr(0.25),
 
 def adj_slice(input_file):
     folder = input_file.split('/')[:-1]
-    a = ''
-    for strings in folder:
-        a += strings + '/'
+    series_path = '/'.join(folder)
 
-    center_file = input_file.split('/')[-1]
-    onlyfiles = [f for f in listdir(a) if isfile(join(a, f))]
-    center_index = onlyfiles.index(center_file)
-    re = center_file.split('_')[1].split('.')[0]
+    images_IDs = sitk.ImageSeriesReader.GetGDCMSeriesFileNames(series_path)
+    center_index = images_IDs.index(input_file)
 
-    if int(re) == (len(onlyfiles) - 2) or int(re) < 2:
+    if center_index >= (len(images_IDs) - 2) or center_index < 2:
         consecutive_slices = [False]
-        labels = [False]
     else:
-        two = int(re) - 2
-        three = int(re) - 1
-        five = int(re) + 1
-        six = int(re) + 2
+        one = center_index - 1
+        three = center_index + 1
 
-        consecutive_slices = [(a + 'slice_' + str(three) + '.jpg'), (a + onlyfiles[center_index]),
-                              (a + 'slice_' + str(five) + '.jpg')]
+        consecutive_slices = [images_IDs[one], images_IDs[center_index], images_IDs[three]]
     return consecutive_slices
 
 
 def read_png(path):
-    # slices = adj_slice(path)
-    # list_images = []
-    # if slices[0] is not False:
-    #     for slicee in slices:
-    #         image_total = cv2.imread(slicee)
-    #         list_images.append(image_total)
-    #     a = np.array(list_images)
-    #     if len(a.shape) == 4:
-    #         return a
-    image = cv2.imread(path)
-    return image / 255
+    slices = adj_slice(path)
+    list_images = []
+    if slices[0] is not False:
+        for slicee in slices:
+            image = sitk.ReadImage(str(slicee))
+            image = sitk.GetArrayFromImage(image)[0]
+            brain_image = np.clip(image, 0, 80)
+            segmentation = morphology.dilation(brain_image, np.ones((7, 7)))
+            segmentation = ndimage.morphology.binary_fill_holes(segmentation)
+
+            labels, label_nb = ndimage.label(segmentation)
+
+            label_count = np.bincount(labels.ravel().astype(np.uint8))
+            label_count[0] = 0
+
+            mask = labels == label_count.argmax()
+            mask = morphology.dilation(mask, np.ones((1, 1)))
+            mask = ndimage.morphology.binary_fill_holes(mask)
+            mask = morphology.dilation(mask, np.ones((3, 3)))
+            mask = np.uint8(mask)
+            a = np.count_nonzero(mask)
+            if a == 262144:
+                pass
+            else:
+                contours, hier = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+                c = max(contours, key=cv2.contourArea)
+                (x, y), (MA, ma), angle = cv2.fitEllipse(c)
+                x, y, w, h = cv2.boundingRect(mask)
+                if (40 < angle < 135) and (w > 1.4 * h):
+                    pass
+                else:
+                    ROI = image[y:y + h, x:x + w]
+                    pic_back = ROI.min()
+                    shifted = np.ones(image.shape) * pic_back
+                    x = 256 - ROI.shape[1] // 2
+                    y = 256 - ROI.shape[0] // 2
+                    shifted[y:y + h, x:x + w] = ROI
+
+                    image_brain = window_img(shifted, 0, 80)
+                    image_brain = (image_brain - 0) / 80
+                    image_brain = np.expand_dims(image_brain, axis=2)
+
+                    image_subdural = window_img(shifted, -20, 180)
+                    image_subdural = (image_subdural - (-20)) / 200
+                    image_subdural = np.expand_dims(image_subdural, axis=2)
+
+                    image_soft = window_img(shifted, -150, 230)
+                    image_soft = (image_soft - (-150)) / 380
+                    image_soft = np.expand_dims(image_soft, axis=2)
+
+                    image_total = np.concatenate([image_brain, image_subdural, image_soft], axis=2)
+                    image_total = (image_total * 255).astype(np.uint8)
+                    image_total = cv2.resize(image_total, dsize=(256, 256))
+                    list_images.append(image_total / 255)
+        a = np.array(list_images)
+        if len(a.shape) == 4:
+            return a
 
 
 class AugmentedImageSequence(Sequence):
@@ -69,8 +106,14 @@ class AugmentedImageSequence(Sequence):
                  target_size=(224, 224), augmenter=True, verbose=0, steps=None,
                  shuffle_on_epoch_end=True, random_state=2):
 
-        self.dataframe = pd.read_csv(dataset_csv_file)
-        self.dataset_df = self.dataframe
+        self.dataset_df = pd.read_pickle(dataset_csv_file)
+        self.dataset_df = self.dataset_df[:40]
+        new = []
+        root = 'C:/Users/Azin/PycharmProjects/one_class/hemo-expert/data/RSNA_ICH_Dataset/'
+        for index, slice_path in enumerate(self.dataset_df['SliceName'].values):
+            new.append(root + self.dataset_df['SeriesInstanceUID'].values[index] + '/' + slice_path)
+        self.dataset_df['imgfile'] = new
+
         self.source_image_dir = source_image_dir
         self.batch_size = batch_size
         self.target_size = target_size
@@ -144,8 +187,7 @@ class AugmentedImageSequence(Sequence):
             raise ValueError("""
             You're trying run get_y_true() when generator option 'shuffle_on_epoch_end' is True.
             """)
-        return self.x_path[:self.steps*self.batch_size]
-
+        return self.x_path[:self.steps * self.batch_size]
 
     def prepare_dataset(self):
         df = self.dataset_df.sample(frac=1., random_state=self.random_state)
@@ -168,35 +210,10 @@ class StepCalculator:
         class_positive_counts = dict(zip(class_names, positive_counts))
         return total_count, class_positive_counts
 
-    @staticmethod
-    def calculating_class_weights(y_true):
-        number_dim = np.shape(y_true)[1]
-        weights = np.empty([number_dim, 2])
-        for i in range(number_dim):
-            weights[i] = compute_class_weight('balanced', classes=np.unique(y_true[:, i]), y=y_true[:, i])
-        return weights
-
-    @staticmethod
-    def get_weighted_loss(weights):
-        def weighted_loss(y_true, y_pred):
-            return K.mean(
-                (weights[:, 0] ** (1 - y_true)) * (weights[:, 1] ** (y_true)) * K.binary_crossentropy(y_true, y_pred),
-                axis=-1)
-
-        return weighted_loss
-
-    @staticmethod
-    def metrics_define(num_classes):
-        metrics_all = ['accuracy',
-                       AUC(curve='PR', multi_label=True, num_labels=num_classes, name='auc_pr'),
-                       AUC(multi_label=True, num_labels=num_classes, name='auc_roc'),
-                       ]
-        return metrics_all
-
     def calculate_steps(self, config):
-        train_df = pd.read_csv(config.data_pipeline.train_csv)
-        validation_df = pd.read_csv(config.data_pipeline.validation_csv)
-        evaluation_df = pd.read_csv(config.evaluation.evaluation_csv)
+        train_df = pd.read_pickle(config.data_pipeline.train_csv)
+        validation_df = pd.read_pickle(config.data_pipeline.validation_csv)
+        evaluation_df = pd.read_pickle(config.evaluation.evaluation_csv)
 
         train_counts, train_pos_counts = self.get_sample_counts(train_df, config.class_names)
         val_counts, val_pos_counts = self.get_sample_counts(validation_df, config.class_names)
@@ -206,16 +223,14 @@ class StepCalculator:
         validation_steps = int(np.ceil(val_counts / config.data_pipeline.val_batch_size))
         evaluation_steps = int(np.ceil(eval_counts / config.evaluation.eval_batch_size))
 
-        weights = self.calculating_class_weights(train_df[config.class_names].values.astype(np.float32))
-        weights = np.sqrt(weights)
-        return train_steps, validation_steps, evaluation_steps, weights
+        return train_steps, validation_steps, evaluation_steps
 
 
 class DataLoader:
     def __init__(self, config):
         self.config = config
         step_calculator = StepCalculator()
-        self.n_tr, self.n_val, self.n_eval, self.weights = step_calculator.calculate_steps(self.config)
+        self.n_tr, self.n_val, self.n_eval = step_calculator.calculate_steps(self.config)
 
     def create_data(self):
         tr_gen = AugmentedImageSequence(
@@ -256,4 +271,3 @@ class DataLoader:
             augmenter=False,
         )
         return eval_gen, self.n_eval
-

@@ -34,7 +34,7 @@ class Evaluator:
         x_true = data_loader.get_x_true()
         y_true_single = np.argmax(y_true, axis=1)
         y_pred_single = np.argmax(y_hat, axis=1)
-        y_pred = np.array([list(np.eye(2)[i]) for i in y_pred_single], dtype=np.uint8)
+        # y_pred = np.array([list(np.eye(2)[i]) for i in y_pred_single], dtype=np.uint8)
 
         # # x_true = ['index1','index2','index3','index4','index5','index6','index7','index8','index9','index10']
         # y_true_single = [1, 1, 0, 0, 0, 0, 0, 0, 0, 0]

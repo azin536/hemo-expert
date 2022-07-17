@@ -2,15 +2,15 @@ seed: 7
 
 dataset_name: RSNA_ICH_Dataset  # i.e. data/{dataset_name}/ contains train, eval and labels.csv
 #model_name: my-hemo-model  # will be used when logging the model to the mlflow
-class_names : ['Non-Hemorrhage', 'Hemorrhage']
+class_names : ['Hemo']
 
 dataset: src.data_pipeline.DataLoader
 model: src.model_building.DenseNet
 #model: model_building.MobileNet
 
 data_pipeline:
-  train_csv: '/content/hemo-expert/data/meta_train.csv'
-  validation_csv: '/content/hemo-expert/data/meta_val.csv'
+  train_csv: 'C:/Users/Azin/PycharmProjects/one_class/hemo-expert/data/slice-level-rsna-meta-data.pkl'
+  validation_csv: 'C:/Users/Azin/PycharmProjects/one_class/hemo-expert/data/slice-level-rsna-meta-data.pkl'
   class_name: data_pipeline.Dataset
   val_split: 0.2
   shuffle: true
@@ -41,9 +41,11 @@ model_builder:
   activation: 'relu'
   weights: null  # or 'imagenet'
   threshold: 0.5
+  initial_learning_rate : 1e-3
+
 
 evaluation:
-  evaluation_csv: '/content/hemo-expert/data/meta_val.csv'
+  evaluation_csv: 'C:/Users/Azin/PycharmProjects/one_class/hemo-expert/data/slice-level-rsna-meta-data.pkl'
   eval_batch_size: 20
 
 artifacts:

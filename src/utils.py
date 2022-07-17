@@ -1,11 +1,15 @@
 from pathlib import Path
 import typing
+from tensorflow.python.keras.metrics import AUC
+import numpy as np
+from sklearn.utils.class_weight import compute_class_weight
+import pandas as pd
+import tensorflow.python.keras.backend as K
 
 import yaml
 import mlflow
 from mlflow.entities import ViewType
 from git import Repo
-
 
 MLFLOW_TRACKING_URI = "https://mlflow.aimedic.co"
 MLFLOW_TRACKING_URI_COLAB = "http://185.110.190.127:7080/"
@@ -176,7 +180,6 @@ def load_config_as_dict(path: Path) -> dict:
 
 def check_conditions(repo: Repo,
                      data_dir: Path):
-
     if repo.is_dirty():
         # print(f'there are uncommitted changes:')
         # print([item.a_path for item in repo.index.diff("HEAD")])
@@ -186,9 +189,48 @@ def check_conditions(repo: Repo,
     data_dvc_file = data_dir.parent.joinpath(f'{data_dir.name}.dvc')
 
     if not data_dvc_file.exists():
-        raise Exception(f'you are using {data_dir.name} dataset, and the .dvc can not be found in the {data_dir.parent}. make sure that your data is being version-controlled by dvc -> add data/{data_dir.name}')
+        raise Exception(
+            f'you are using {data_dir.name} dataset, and the .dvc can not be found in the {data_dir.parent}. make sure that your data is being version-controlled by dvc -> add data/{data_dir.name}')
     print(f'dataset {data_dir.name} is being version controlled by dvc: PASSED')
 
     if str(data_dvc_file) in repo.untracked_files:
         raise Exception(f'{data_dvc_file.name} is not being tracked, add and commit to continue.')
     print(f'{data_dvc_file} is being tracked.')
+
+
+def metrics_define(num_classes):
+    metrics_all = ['accuracy',
+                   AUC(curve='PR', multi_label=True, num_labels=num_classes, name='auc_pr'),
+                   AUC(multi_label=True, num_labels=num_classes, name='auc_roc'),
+                   ]
+    return metrics_all
+
+
+class WeightCalculator:
+
+    def __init__(self, config):
+        self.config = config
+        self.train_df = pd.read_pickle(self.config.data_pipeline.train_csv)
+
+    @staticmethod
+    def calculating_class_weights(y_true):
+        number_dim = np.shape(y_true)[1]
+        weights = np.empty([number_dim, 2])
+        for i in range(number_dim):
+            weights[i] = compute_class_weight('balanced', classes=np.unique(y_true[:, i]), y=y_true[:, i])
+        return weights
+
+    def get_weights(self):
+        weights = self.calculating_class_weights(self.train_df[self.config.class_names].values.astype(np.float32))
+        weights = np.sqrt(weights)
+        return weights
+
+    def get_weighted_loss(self):
+        weights = self.get_weights()
+
+        def weighted_loss(y_true, y_pred):
+            return K.mean(
+                (weights[:, 0] ** (1 - y_true)) * (weights[:, 1] ** y_true) * K.binary_crossentropy(y_true, y_pred),
+                axis=-1)
+
+        return weighted_loss

@@ -21,7 +21,7 @@ def main(conf: str, debug: bool):
     data_dir = DATA_FOLDER.joinpath(config.dataset_name)
     run_dir = Path('run')
 
-    repo = Repo('hemo-expert')
+    repo = Repo()
 
     if not debug:
         check_conditions(repo, data_dir=data_dir)
