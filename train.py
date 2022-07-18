@@ -4,12 +4,9 @@ from pydoc import locate
 import click
 from omegaconf import OmegaConf
 from git import Repo
-
-from src.model_building import DenseNet
 from src.training import Trainer
 from src.utils import setup_mlflow_active_run, check_conditions
 from src import DATA_FOLDER
-from src.data_pipeline import AugmentedImageSequence, StepCalculator
 
 
 @click.command()

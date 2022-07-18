@@ -10,7 +10,7 @@ import mlflow
 from omegaconf.dictconfig import DictConfig
 
 from .model_building import ModelBuilderBase
-from .bot import DiscordBot
+# from .bot import DiscordBot
 
 
 class Trainer:
@@ -58,7 +58,7 @@ class Trainer:
         self.history_ = None
 
         # Discord Bot
-        self.bot = DiscordBot()
+        # self.bot = DiscordBot()
 
     def train(self,
               model_builder: ModelBuilderBase,
