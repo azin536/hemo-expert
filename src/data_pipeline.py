@@ -106,10 +106,9 @@ class AugmentedImageSequence(Sequence):
                  target_size=(224, 224), augmenter=True, verbose=0, steps=None,
                  shuffle_on_epoch_end=True, random_state=2):
 
-        self.dataset_df = pd.read_pickle(dataset_csv_file)
-        self.dataset_df = self.dataset_df[:40]
+        self.dataset_df = pd.read_csv(dataset_csv_file)
         new = []
-        root = 'C:/Users/Azin/PycharmProjects/one_class/hemo-expert/data/RSNA_ICH_Dataset/'
+        root = '/content/hemo-expert/data/RSNA_ICH_Dataset/'
         for index, slice_path in enumerate(self.dataset_df['SliceName'].values):
             new.append(root + self.dataset_df['SeriesInstanceUID'].values[index] + '/' + slice_path)
         self.dataset_df['imgfile'] = new
@@ -211,9 +210,9 @@ class StepCalculator:
         return total_count, class_positive_counts
 
     def calculate_steps(self, config):
-        train_df = pd.read_pickle(config.data_pipeline.train_csv)
-        validation_df = pd.read_pickle(config.data_pipeline.validation_csv)
-        evaluation_df = pd.read_pickle(config.evaluation.evaluation_csv)
+        train_df = pd.read_csv(config.data_pipeline.train_csv)
+        validation_df = pd.read_csv(config.data_pipeline.validation_csv)
+        evaluation_df = pd.read_csv(config.evaluation.evaluation_csv)
 
         train_counts, train_pos_counts = self.get_sample_counts(train_df, config.class_names)
         val_counts, val_pos_counts = self.get_sample_counts(validation_df, config.class_names)

@@ -418,7 +418,7 @@ class AdjModel(ModelBuilderBase):
         model = Model(inputs=inputs, outputs=outputs)
         return model
 
-    def get_compiled_mode(self):
+    def get_compiled_model(self):
         inputs = Input(shape=(3, 256, 256, 3))
 
         input1 = inputs[:, 0]

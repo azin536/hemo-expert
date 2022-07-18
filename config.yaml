@@ -5,7 +5,7 @@ dataset_name: RSNA_ICH_Dataset  # i.e. data/{dataset_name}/ contains train, eval
 class_names : ['Hemo']
 
 dataset: src.data_pipeline.DataLoader
-model: src.model_building.DenseNet
+model: src.model_building.AdjModel
 #model: model_building.MobileNet
 
 data_pipeline:
