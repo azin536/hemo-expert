@@ -1,10 +1,10 @@
 from pathlib import Path
 import typing
-from tensorflow.python.keras.metrics import AUC
+from tensorflow.keras.metrics import AUC
 import numpy as np
 from sklearn.utils.class_weight import compute_class_weight
 import pandas as pd
-import tensorflow.python.keras.backend as K
+import tensorflow.keras.backend as K
 
 import yaml
 import mlflow
@@ -113,15 +113,10 @@ def _setup_mlflow(mlflow_experiment_name: str,
     print(f'Exp Artifact Location: {experiment.artifact_location}')
     print(f'Exp Tags: {experiment.tags}')
     print(f'Exp Lifecycle Stage: {experiment.lifecycle_stage}')
-    # if experiment is not None:
-    #     experiment_id = experiment.experiment_id
-    # else:
-    #     experiment_id = mlflow.create_experiment(mlflow_experiment_name)
 
     mlflow.set_tracking_uri(mlflow_tracking_uri)
 
     return mlflow.start_run(experiment_id=experiment.experiment_id)
-    # active_run = mlflow.start_run(experiment_id=experiment.experiment_id)
 
 
 def _add_config_file_to_mlflow(config_dict: dict):
@@ -181,8 +176,6 @@ def load_config_as_dict(path: Path) -> dict:
 def check_conditions(repo: Repo,
                      data_dir: Path):
     if repo.is_dirty():
-        # print(f'there are uncommitted changes:')
-        # print([item.a_path for item in repo.index.diff("HEAD")])
         raise Exception('there are uncommitted changes. commit all the changed and try again.')
     print('repo is clean: PASSED')
 
@@ -198,10 +191,10 @@ def check_conditions(repo: Repo,
     print(f'{data_dvc_file} is being tracked.')
 
 
-def metrics_define(num_classes):
+def metrics_define():
     metrics_all = ['accuracy',
-                   AUC(curve='PR', multi_label=True, num_labels=num_classes, name='auc_pr'),
-                   AUC(multi_label=True, num_labels=num_classes, name='auc_roc'),
+                   # AUC(curve='PR', multi_label=False, name='auc_pr'),
+                   # AUC(multi_label=False, name='auc_roc'),
                    ]
     return metrics_all
 

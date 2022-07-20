@@ -1,23 +1,21 @@
 seed: 7
 
 dataset_name: RSNA_ICH_Dataset  # i.e. data/{dataset_name}/ contains train, eval and labels.csv
-#model_name: my-hemo-model  # will be used when logging the model to the mlflow
 class_names : ['Hemo']
 
 dataset: src.data_pipeline.DataLoader
 model: src.model_building.AdjModel
-#model: model_building.MobileNet
 
 data_pipeline:
-  train_csv: 'C:/Users/Azin/PycharmProjects/one_class/hemo-expert/data/slice-level-rsna-meta-data.pkl'
-  validation_csv: 'C:/Users/Azin/PycharmProjects/one_class/hemo-expert/data/slice-level-rsna-meta-data.pkl'
+  train_csv: 'C:/Users/Azin/PycharmProjects/one_class/hemo-expert/data/slices.pkl'
+  validation_csv: 'C:/Users/Azin/PycharmProjects/one_class/hemo-expert/data/slices.pkl'
   class_name: data_pipeline.Dataset
   val_split: 0.2
   shuffle: true
   batch_size: 16
   label_map: {'non-hemo': 0, 'hemo': 1}
-  train_batch_size : 32
-  val_batch_size : 32
+  train_batch_size : 10
+  val_batch_size : 10
   image_dimension : 256
 
 preprocessing:
@@ -30,7 +28,7 @@ preprocessing:
 trainer:
   export_metric: 'loss'
   export_mode: 'min'
-  epochs: 2
+  epochs: 1
 
 exporter:
 #  pyfunc_model: inference.MyHemoModel
@@ -45,8 +43,8 @@ model_builder:
 
 
 evaluation:
-  evaluation_csv: 'C:/Users/Azin/PycharmProjects/one_class/hemo-expert/data/slice-level-rsna-meta-data.pkl'
-  eval_batch_size: 20
+  evaluation_csv: 'C:/Users/Azin/PycharmProjects/one_class/hemo-expert/data/slices.pkl'
+  eval_batch_size: 10
 
 artifacts:
   run_url: null

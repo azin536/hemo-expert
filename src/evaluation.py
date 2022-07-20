@@ -1,6 +1,4 @@
-from re import VERBOSE
 import typing
-from abc import abstractmethod
 import tempfile
 
 from tqdm import tqdm
@@ -30,17 +28,19 @@ class Evaluator:
         performance = EvaluationMetrics()
 
         y_hat = tf_model.predict(data_loader, steps = n_iter)
+        y_pred = []
+        for pred in y_hat:
+            if pred >= 0.5:
+                pred = 1
+                y_pred.append(pred)
+            else:
+                pred = 0
+                y_pred.append(pred)
+
         y_true = data_loader.get_y_true()
         x_true = data_loader.get_x_true()
-        y_true_single = np.argmax(y_true, axis=1)
-        y_pred_single = np.argmax(y_hat, axis=1)
-        # y_pred = np.array([list(np.eye(2)[i]) for i in y_pred_single], dtype=np.uint8)
 
-        # # x_true = ['index1','index2','index3','index4','index5','index6','index7','index8','index9','index10']
-        # y_true_single = [1, 1, 0, 0, 0, 0, 0, 0, 0, 0]
-        # y_pred_single = [1, 1, 1, 0, 1, 0, 1, 0, 0, 0]
-
-        list_of_tuples = list(zip(x_true, y_true_single, y_pred_single))
+        list_of_tuples = list(zip(x_true, y_true, y_pred))
         df = pd.DataFrame(list_of_tuples,columns=['ID', 'GT', 'Pred'])
         df["Status"] = ""
 
@@ -48,14 +48,14 @@ class Evaluator:
         choicelist = ['True Positive', 'True Negative', 'False Negative', 'Fasle positive']
         df['Status'] = np.select(condlist, choicelist)
 
-        evaluated_acc = performance.evaluate_accuracy(y_true_single, y_pred_single)
-        evaluated_precision_score = performance.evaluate_precision_score(y_true_single, y_pred_single)
-        evaluated_recall_score = performance.evaluate_recall_score(y_true_single, y_pred_single)
-        evaluated_f1_score = performance.evaluate_f1_score(y_true_single, y_pred_single)
-        evaluated_roc_auc_score = performance.evaluate_roc_auc_score(y_true_single, y_pred_single)
-        evaluated_sensitivity = performance.evaluate_sensitivity(y_true_single, y_pred_single)
-        evaluated_specifity = performance.evaluate_specifity(y_true_single, y_pred_single)
-        evaluated_npv = performance.evaluate_npv(y_true_single, y_pred_single)
+        evaluated_acc = performance.evaluate_accuracy(y_true, y_pred)
+        evaluated_precision_score = performance.evaluate_precision_score(y_true, y_pred)
+        evaluated_recall_score = performance.evaluate_recall_score(y_true, y_pred)
+        evaluated_f1_score = performance.evaluate_f1_score(y_true, y_pred)
+        evaluated_roc_auc_score = performance.evaluate_roc_auc_score(y_true, y_pred)
+        evaluated_sensitivity = performance.evaluate_sensitivity(y_true, y_pred)
+        evaluated_specifity = performance.evaluate_specifity(y_true, y_pred)
+        evaluated_npv = performance.evaluate_npv(y_true, y_pred)
 
         metrics_dict = {'Acc_Score': evaluated_acc, 'Precision_Score': evaluated_precision_score,
                         'Recall_Score': evaluated_recall_score, 'F1_score': evaluated_f1_score,
@@ -64,14 +64,6 @@ class Evaluator:
 
         self._log_metrics_to_mlflow(active_run, metrics_dict)
         self._log_df_report_to_mlflow(active_run, df)
-
-        # # Using self.get_metrics()
-        # metrics = [metric for metric in self.eval_metrics_]
-        # if any(metrics):
-        #     _wrap_pred_step(tf_model)
-        #     preds, gts, data_ids = tf_model.predict(data_loader, steps=n_iter)
-        #     report_df = self._generate_eval_reports(metrics, preds, gts, data_ids)
-        #     self._log_df_report_to_mlflow(active_run, report_df)
 
     @staticmethod
     def _generate_eval_reports(metrics: typing.List[Metric],

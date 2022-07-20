@@ -1,17 +1,12 @@
-from src.utils import metrics_define, WeightCalculator
 import warnings
 import tensorflow as tf
 from tensorflow.keras.optimizers import Adam
 from tensorflow.keras import backend as K
-from tensorflow.keras.applications.resnet50 import preprocess_input
 from tensorflow.keras.layers import (Activation, Conv2D, Dense, Reshape, Permute,
                                      GlobalAveragePooling2D, GlobalMaxPooling2D,
                                      Input, MaxPooling2D, add, multiply)
-from tensorflow.keras.layers import BatchNormalization
 from tensorflow.keras.models import Model
 from tensorflow.keras.regularizers import l2
-from tensorflow.keras.applications.imagenet_utils import decode_predictions
-from tensorflow.keras.backend import is_keras_tensor
 from tensorflow.keras.utils import get_source_inputs
 from tensorflow.keras.layers import Conv2D, MaxPooling2D, Flatten, BatchNormalization
 from tensorflow.keras.layers import Dense, Dropout, Input
@@ -369,7 +364,7 @@ class AdjModel(ModelBuilderBase):
         img_input = Input(input_shape)
 
         x = self._create_se_resnet(classes, img_input, include_top, initial_conv_filters,
-                              filters, depth, width, bottleneck, weight_decay, pooling)
+                                   filters, depth, width, bottleneck, weight_decay, pooling)
 
         # # Ensure that the model takes into account
         # # any potential predecessors of `input_tensor`.
@@ -396,14 +391,14 @@ class AdjModel(ModelBuilderBase):
                    pooling=None,
                    classes=1000):
         return self.SEResNet(input_shape,
-                        width=width,
-                        bottleneck=bottleneck,
-                        weight_decay=weight_decay,
-                        include_top=include_top,
-                        weights=weights,
-                        input_tensor=input_tensor,
-                        pooling=pooling,
-                        classes=classes)
+                             width=width,
+                             bottleneck=bottleneck,
+                             weight_decay=weight_decay,
+                             include_top=include_top,
+                             weights=weights,
+                             input_tensor=input_tensor,
+                             pooling=pooling,
+                             classes=classes)
 
     @staticmethod
     def model2():
@@ -437,12 +432,18 @@ class AdjModel(ModelBuilderBase):
 
         model = Model(inputs=inputs, outputs=overall_out)
         optimizer = Adam(learning_rate=self.config.model_builder.initial_learning_rate)
-        metrics_all = metrics_define(len(self.config.class_names))
-        weight_calculator = WeightCalculator(self.config)
-        model.compile(optimizer=optimizer, loss=weight_calculator.get_weighted_loss(), metrics=metrics_all)
+        metrics = [tfk.metrics.SensitivityAtSpecificity(0.8),
+                   tfk.metrics.AUC(curve='PR', name='AUC of Precision-Recall Curve'),
+                   tfk.metrics.FalseNegatives(),
+                   tfk.metrics.FalsePositives(),
+                   tfk.metrics.TrueNegatives(),
+                   tfk.metrics.TruePositives()]
+
+        model.compile(optimizer=optimizer,
+                      loss='binary_crossentropy',
+                      metrics=metrics)
 
         return model
-
 
 
 class DenseNet(ModelBuilderBase):
@@ -450,7 +451,7 @@ class DenseNet(ModelBuilderBase):
     def get_compiled_model(self) -> tfk.Model:
         mb_conf = self.config.model_builder
         input_shape = mb_conf.input_shape
-        n_classes = 2
+        n_classes = 1
 
         input_tensor = tfkl.Input(input_shape, dtype=tf.uint8)  # encoded PNG inputs
         x = tf.cast(input_tensor, tf.float32)
@@ -475,6 +476,11 @@ class DenseNet(ModelBuilderBase):
                    tfk.metrics.FalsePositives(),
                    tfk.metrics.TrueNegatives(),
                    tfk.metrics.TruePositives()]
+
+        # optimizer = Adam(learning_rate=self.config.model_builder.initial_learning_rate)
+        # metrics_all = metrics_define(len(self.config.class_names))
+        # weight_calculator = WeightCalculator(self.config)
+        # model.compile(optimizer=optimizer, loss=weight_calculator.get_weighted_loss(), metrics=metrics)
 
         model.compile(optimizer=optimizer,
                       loss='binary_crossentropy',

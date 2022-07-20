@@ -138,20 +138,20 @@ class Trainer:
             def on_epoch_end(self, epoch, logs=None):
                 mlflow.log_metrics(logs, epoch)
 
-        class DiscordLogging(tf.keras.callbacks.Callback):
-            def on_epoch_end(self, epoch, logs=None):
-                exp_id = active_run.info.experiment_id
-                exp_name = mlflow.get_experiment(exp_id).name
+        # class DiscordLogging(tf.keras.callbacks.Callback):
+        #     def on_epoch_end(self, epoch, logs=None):
+        #         exp_id = active_run.info.experiment_id
+        #         exp_name = mlflow.get_experiment(exp_id).name
+        #
+        #         message = '\n'
+        #         for k, v in logs.items():
+        #             message += f'  ✌🏼 **{k}** -> {v}\n'
+        #         bot.send_message(exp_name=exp_name,
+        #                          run_id=active_run.info.run_id,
+        #                          epoch=epoch,
+        #                          message=message)
 
-                message = '\n'
-                for k, v in logs.items():
-                    message += f'  ✌🏼 **{k}** -> {v}\n'
-                bot.send_message(exp_name=exp_name,
-                                 run_id=active_run.info.run_id,
-                                 epoch=epoch,
-                                 message=message)
-
-        bot = self.bot
+        # bot = self.bot
 
         callbacks = model_builder.get_callbacks()
 
@@ -179,8 +179,8 @@ class Trainer:
         mlflow_logging_callback = MLFlowLogging()
         callbacks.append(mlflow_logging_callback)
 
-        discord_callback = DiscordLogging()
-        callbacks.append(discord_callback)
+        # discord_callback = DiscordLogging()
+        # callbacks.append(discord_callback)
 
         return callbacks
 

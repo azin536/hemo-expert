@@ -1,17 +1,11 @@
 from pathlib import Path
-from pydoc import locate
-
 import click
 import tensorflow.keras as tfk
 from omegaconf import OmegaConf
 from git import Repo
-
-from src.data_pipeline import DataLoader
 from src.training import get_checkpoints_info
 from src.evaluation import Evaluator
 from src.utils import setup_mlflow_active_run, check_conditions
-import src.eval_metrics
-from src.base import Metric
 from pydoc import locate
 from src.eval_metrics import EvaluationMetrics
 
@@ -28,7 +22,7 @@ def main(conf: str, debug: bool):
     data_dir = DATA_DIR.joinpath(config.dataset_name)
     run_dir = Path('run')
 
-    repo = Repo('hemo-expert')
+    repo = Repo()
 
     if not debug:
         check_conditions(repo, data_dir=data_dir)
@@ -38,7 +32,13 @@ def main(conf: str, debug: bool):
 
     checkpoints = get_checkpoints_info(run_dir.joinpath('checkpoints'))
     selected_model = min(checkpoints, key=lambda x: x['value'])
-    model = tfk.models.load_model(selected_model['path'])
+    # a = str(selected_model['path'])
+    # txt = "\\"
+    # a = a.replace(txt, '/')
+    # print(a)
+    # print("==================")
+    b = 'C:/Users/Azin/PycharmProjects/one_class/hemo-expert/run/checkpoints/sm-0001-0.69395'
+    model = tfk.models.load_model(b)
 
     root = Path(repo.working_tree_dir).name
     experiment_name = root + '/' + repo.active_branch.name

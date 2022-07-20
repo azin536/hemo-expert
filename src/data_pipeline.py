@@ -1,10 +1,8 @@
 from tensorflow.keras.utils import Sequence
 from imgaug import augmenters as iaa
 import pandas as pd
-
 import os
 import SimpleITK as sitk
-import numpy
 import numpy as np
 from scipy import ndimage
 from skimage import morphology
@@ -28,7 +26,11 @@ def adj_slice(input_file):
     series_path = '/'.join(folder)
 
     images_IDs = sitk.ImageSeriesReader.GetGDCMSeriesFileNames(series_path)
-    center_index = images_IDs.index(input_file)
+    new = []
+    txt = "\\"
+    for image in images_IDs:
+        new.append(image.replace(txt, '/'))
+    center_index = new.index(input_file)
 
     if center_index >= (len(images_IDs) - 2) or center_index < 2:
         consecutive_slices = [False]
@@ -36,7 +38,7 @@ def adj_slice(input_file):
         one = center_index - 1
         three = center_index + 1
 
-        consecutive_slices = [images_IDs[one], images_IDs[center_index], images_IDs[three]]
+        consecutive_slices = [new[one], new[center_index], new[three]]
     return consecutive_slices
 
 
@@ -98,6 +100,9 @@ def read_png(path):
         a = np.array(list_images)
         if len(a.shape) == 4:
             return a
+    else:
+        image_id = path.split("/")[-1]
+        return image_id
 
 
 class AugmentedImageSequence(Sequence):
@@ -106,9 +111,9 @@ class AugmentedImageSequence(Sequence):
                  target_size=(224, 224), augmenter=True, verbose=0, steps=None,
                  shuffle_on_epoch_end=True, random_state=2):
 
-        self.dataset_df = pd.read_csv(dataset_csv_file)
+        self.dataset_df = pd.read_pickle(dataset_csv_file)
         new = []
-        root = '/content/hemo-expert/data/RSNA_ICH_Dataset/'
+        root = 'C:/Users/Azin/PycharmProjects/one_class/hemo-expert/data/RSNA_ICH_Dataset/'
         for index, slice_path in enumerate(self.dataset_df['SliceName'].values):
             new.append(root + self.dataset_df['SeriesInstanceUID'].values[index] + '/' + slice_path)
         self.dataset_df['imgfile'] = new
@@ -170,11 +175,23 @@ class AugmentedImageSequence(Sequence):
         In order to get correct y, you have to set shuffle_on_epoch_end=False.
 
         """
+        y_true = self.y[:self.steps * self.batch_size, :]
+        array_y_true = np.asarray(y_true)
+        indecies_to_delete = []
+        for index, path in enumerate(self.x_path):
+            output = self.load_image(path)
+            if type(output) == str:
+                true_id = path.split("/")[-1]
+                if true_id == output:
+                    indecies_to_delete.append(index)
+
+        deleted_array = np.delete(array_y_true, indecies_to_delete, axis=0)
+        list_y_true = deleted_array.tolist()
         if self.shuffle:
             raise ValueError("""
             You're trying run get_y_true() when generator option 'shuffle_on_epoch_end' is True.
             """)
-        return self.y[:self.steps * self.batch_size, :]
+        return list_y_true
 
     def get_x_true(self):
         """
@@ -182,11 +199,24 @@ class AugmentedImageSequence(Sequence):
         In order to get correct y, you have to set shuffle_on_epoch_end=False.
 
         """
+        x_true = self.x_path[:self.steps * self.batch_size]
+        array_x_true = np.asarray(x_true)
+        indecies_to_delete = []
+        for index, path in enumerate(self.x_path):
+            output = self.load_image(path)
+            if type(output) == str:
+                true_id = path.split("/")[-1]
+                if true_id == output:
+                    indecies_to_delete.append(index)
+
+        deleted_array = np.delete(array_x_true, indecies_to_delete, axis=0)
+        list_x_true = deleted_array.tolist()
+
         if self.shuffle:
             raise ValueError("""
             You're trying run get_y_true() when generator option 'shuffle_on_epoch_end' is True.
             """)
-        return self.x_path[:self.steps * self.batch_size]
+        return list_x_true
 
     def prepare_dataset(self):
         df = self.dataset_df.sample(frac=1., random_state=self.random_state)
@@ -210,9 +240,9 @@ class StepCalculator:
         return total_count, class_positive_counts
 
     def calculate_steps(self, config):
-        train_df = pd.read_csv(config.data_pipeline.train_csv)
-        validation_df = pd.read_csv(config.data_pipeline.validation_csv)
-        evaluation_df = pd.read_csv(config.evaluation.evaluation_csv)
+        train_df = pd.read_pickle(config.data_pipeline.train_csv)
+        validation_df = pd.read_pickle(config.data_pipeline.validation_csv)
+        evaluation_df = pd.read_pickle(config.evaluation.evaluation_csv)
 
         train_counts, train_pos_counts = self.get_sample_counts(train_df, config.class_names)
         val_counts, val_pos_counts = self.get_sample_counts(validation_df, config.class_names)
