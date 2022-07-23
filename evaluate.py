@@ -32,13 +32,7 @@ def main(conf: str, debug: bool):
 
     checkpoints = get_checkpoints_info(run_dir.joinpath('checkpoints'))
     selected_model = min(checkpoints, key=lambda x: x['value'])
-    # a = str(selected_model['path'])
-    # txt = "\\"
-    # a = a.replace(txt, '/')
-    # print(a)
-    # print("==================")
-    b = 'C:/Users/Azin/PycharmProjects/one_class/hemo-expert/run/checkpoints/sm-0001-0.69395'
-    model = tfk.models.load_model(b)
+    model = tfk.models.load_model(selected_model)
 
     root = Path(repo.working_tree_dir).name
     experiment_name = root + '/' + repo.active_branch.name
@@ -48,9 +42,6 @@ def main(conf: str, debug: bool):
                                          experiment_name=experiment_name, colab = True)
 
     eval_metrics = [EvaluationMetrics]
-    # for name, cls in inspect.getmembers(src.eval_metrics, lambda o: inspect.isclass(o) and issubclass(o, Metric)):
-    #     if name != 'Metric':
-    #         eval_metrics.append(cls())
 
     evaluator = Evaluator(eval_metrics=eval_metrics)
     evaluator.run(model, eval_gen, n_eval, active_run)

@@ -1,9 +1,6 @@
 from discord import Webhook, RequestsWebhookAdapter
 
 
-WEBHOOK = 'https://discord.com/api/webhooks/993421397521072189/gw186mzZz7wCBDKRcPDvSgd3Ahym8i2C-CywoyxQm5BQ_sv6kU4IlZQNLqtnhH89OBPd'
-
-
 class DiscordBot:
     """
     this bot is for sending a message to discord channel which consists of experiment name(repository name), run id,
@@ -13,7 +10,7 @@ class DiscordBot:
     bot = DiscordBot("Webhook URL")
     bot.send_message(experiment name, run id, epoch, message)
     """
-    def __init__(self, webhook_url: str = WEBHOOK):
+    def __init__(self, webhook_url: str):
         self.url = webhook_url
 
     def send_message(self, exp_name: str, run_id: int, epoch: int, message=None):

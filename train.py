@@ -12,7 +12,8 @@ from src import DATA_FOLDER
 @click.command()
 @click.option('--conf', type=str, default='config.yaml')
 @click.option('--debug', is_flag=True, default=False, help='if True, do not check for all-committed conditions or not.')
-def main(conf: str, debug: bool):
+@click.option('--webhook', type=str)
+def main(conf: str, debug: bool, webhook_url: str):
     config_file_path = Path(conf)
     config = OmegaConf.load(config_file_path)
     data_dir = DATA_FOLDER.joinpath(config.dataset_name)
@@ -27,7 +28,7 @@ def main(conf: str, debug: bool):
     dataset = locate(config.dataset)(config)
     model_builder = locate(config.model)(config)
 
-    trainer = Trainer(config, run_dir)
+    trainer = Trainer(config, run_dir, webhook_url)
 
     root = Path(repo.working_tree_dir).name
     experiment_name = root + '/' + repo.active_branch.name

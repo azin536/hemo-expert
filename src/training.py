@@ -10,7 +10,7 @@ import mlflow
 from omegaconf.dictconfig import DictConfig
 
 from .model_building import ModelBuilderBase
-# from .bot import DiscordBot
+from .bot import DiscordBot
 
 
 class Trainer:
@@ -41,7 +41,8 @@ class Trainer:
 
     def __init__(self,
                  config: DictConfig,
-                 run_dir: Path):
+                 run_dir: Path,
+                 webhook_url: str):
 
         self.config = config
         self.run_dir = run_dir
@@ -58,7 +59,7 @@ class Trainer:
         self.history_ = None
 
         # Discord Bot
-        # self.bot = DiscordBot()
+        self.bot = DiscordBot(webhook_url)
 
     def train(self,
               model_builder: ModelBuilderBase,
@@ -138,20 +139,20 @@ class Trainer:
             def on_epoch_end(self, epoch, logs=None):
                 mlflow.log_metrics(logs, epoch)
 
-        # class DiscordLogging(tf.keras.callbacks.Callback):
-        #     def on_epoch_end(self, epoch, logs=None):
-        #         exp_id = active_run.info.experiment_id
-        #         exp_name = mlflow.get_experiment(exp_id).name
-        #
-        #         message = '\n'
-        #         for k, v in logs.items():
-        #             message += f'  ✌🏼 **{k}** -> {v}\n'
-        #         bot.send_message(exp_name=exp_name,
-        #                          run_id=active_run.info.run_id,
-        #                          epoch=epoch,
-        #                          message=message)
+        class DiscordLogging(tf.keras.callbacks.Callback):
+            def on_epoch_end(self, epoch, logs=None):
+                exp_id = active_run.info.experiment_id
+                exp_name = mlflow.get_experiment(exp_id).name
 
-        # bot = self.bot
+                message = '\n'
+                for k, v in logs.items():
+                    message += f'  ✌🏼 **{k}** -> {v}\n'
+                bot.send_message(exp_name=exp_name,
+                                 run_id=active_run.info.run_id,
+                                 epoch=epoch,
+                                 message=message)
+
+        bot = self.bot
 
         callbacks = model_builder.get_callbacks()
 
@@ -179,8 +180,8 @@ class Trainer:
         mlflow_logging_callback = MLFlowLogging()
         callbacks.append(mlflow_logging_callback)
 
-        # discord_callback = DiscordLogging()
-        # callbacks.append(discord_callback)
+        discord_callback = DiscordLogging()
+        callbacks.append(discord_callback)
 
         return callbacks
 
@@ -267,10 +268,8 @@ class Exporter:
 
         best_model_info = self.get_best_checkpoint()
 
-        # exported_config_path = self.initial_export_dir.joinpath('config.yaml')
         shutil.copytree(best_model_info['path'], self.exported_model_path,
                         symlinks=False, ignore=None, ignore_dangling_symlinks=False)
-        # self._write_dict_to_yaml(dict_config, exported_config_path)
 
         # Delete checkpoints
         shutil.rmtree(self.checkpoints_dir)
